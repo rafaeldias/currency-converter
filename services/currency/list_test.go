@@ -15,7 +15,7 @@ func TestList(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		c := New(Credential{tc.URL, tc.accessKey})
+		c := list{Credential{tc.URL, tc.accessKey}}
 		list, err := c.List()
 		if err != nil {
 			t.Fatalf("Error while requesting currency list: %s", err.Error())
@@ -43,7 +43,7 @@ func TestListError(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		c := New(Credential{tc.URL, tc.accessKey})
+		c := list{Credential{tc.URL, tc.accessKey}}
 		_, err := c.List()
 		if err != nil && err.Error() != tc.want {
 			t.Fatalf("got: %s; want: %s", err.Error(), tc.want)

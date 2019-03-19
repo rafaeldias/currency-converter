@@ -11,7 +11,11 @@ type Lister interface {
 }
 
 // ListConvert groups the basic List and Convert methods of Currency
-type ListConvert interface {
+type ListConverter interface {
 	Lister
 	Converter
+}
+
+type currencyLayer interface {
+	Ok() bool
 }

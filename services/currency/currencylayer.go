@@ -2,12 +2,61 @@ package currency
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 )
 
 var accessKey = flag.String("accesskey", "abcd", "fake access key for testing purpose")
+
+type errPayload struct {
+	Code int    `json:"code"`
+	Info string `json:"info"`
+}
+
+// Commom properties of Currency Layer payloaa
+type defaultPayload struct {
+	Success bool       `json:"success"`
+	Error   errPayload `json:"error,omitempty"`
+}
+
+func (d *defaultPayload) Ok() bool {
+	return d.Success
+}
+
+// Partial payload returned by the Currency Layer, useless properties were omitted
+type currenciesPayload struct {
+	defaultPayload
+
+	Currencies List `json:"currencies,omitempty"`
+}
+
+// Partial payload returned by the Currency Layer, useless properties were omitted
+type convertPayload struct {
+	defaultPayload
+
+	Result float32 `json:"result,omitempty"`
+}
+
+func parseCurrencyLayerPayload(c currencyLayer, r io.Reader) error {
+	bytes, err := ioutil.ReadAll(r)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(bytes, c); err != nil {
+		return err
+	}
+
+	if !c.Ok() {
+		return errors.New(list.Error.Info)
+	}
+
+	return nil
+}
 
 // Checks for the presence and correctness of access key
 func hasAccessKey(r *http.Request) bool {
@@ -18,7 +67,7 @@ func hasAccessKey(r *http.Request) bool {
 func currencyLayerServer(l List) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !hasAccessKey(r) {
-			errPay := currenciesPayload{
+			errPay := defaultPayload{
 				Success: false,
 				Error: errPayload{
 					Code: http.StatusSwitchingProtocols,
@@ -38,8 +87,10 @@ func currencyLayerServer(l List) *httptest.Server {
 		switch r.URL.Path {
 		case "/api/list":
 			currPay := currenciesPayload{
-				Success:    true,
-				Currencies: l,
+				defaultPayload{
+					Success: true,
+				},
+				l,
 			}
 
 			res, err := json.Marshal(currPay)
@@ -52,8 +103,10 @@ func currencyLayerServer(l List) *httptest.Server {
 			w.Write(res)
 		case "/api/convert":
 			convPay := convertPayload{
-				Success: true,
-				Result:  6.58443,
+				defaultPayload{
+					Success: true,
+				},
+				6.58443,
 			}
 
 			res, err := json.Marshal(convPay)
