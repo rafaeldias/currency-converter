@@ -1,0 +1,26 @@
+mode: set
+github.com/rafaeldias/currency-converter/services/currency/currency.go:16.36,18.2 1 1
+github.com/rafaeldias/currency-converter/services/currency/currencylayer_mock.go:13.41,15.2 1 1
+github.com/rafaeldias/currency-converter/services/currency/currencylayer_mock.go:18.51,19.90 1 1
+github.com/rafaeldias/currency-converter/services/currency/currencylayer_mock.go:19.90,20.23 1 1
+github.com/rafaeldias/currency-converter/services/currency/currencylayer_mock.go:38.3,38.21 1 1
+github.com/rafaeldias/currency-converter/services/currency/currencylayer_mock.go:20.23,30.18 3 1
+github.com/rafaeldias/currency-converter/services/currency/currencylayer_mock.go:34.4,35.10 2 1
+github.com/rafaeldias/currency-converter/services/currency/currencylayer_mock.go:30.18,33.5 2 0
+github.com/rafaeldias/currency-converter/services/currency/currencylayer_mock.go:39.20,46.18 3 1
+github.com/rafaeldias/currency-converter/services/currency/currencylayer_mock.go:51.4,52.16 2 1
+github.com/rafaeldias/currency-converter/services/currency/currencylayer_mock.go:53.23,60.18 3 0
+github.com/rafaeldias/currency-converter/services/currency/currencylayer_mock.go:65.4,66.16 2 0
+github.com/rafaeldias/currency-converter/services/currency/currencylayer_mock.go:68.11,69.76 1 0
+github.com/rafaeldias/currency-converter/services/currency/currencylayer_mock.go:46.18,49.5 2 0
+github.com/rafaeldias/currency-converter/services/currency/currencylayer_mock.go:60.18,63.5 2 0
+github.com/rafaeldias/currency-converter/services/currency/list.go:27.37,31.16 3 1
+github.com/rafaeldias/currency-converter/services/currency/list.go:35.2,38.16 3 1
+github.com/rafaeldias/currency-converter/services/currency/list.go:42.2,42.58 1 1
+github.com/rafaeldias/currency-converter/services/currency/list.go:46.2,46.19 1 1
+github.com/rafaeldias/currency-converter/services/currency/list.go:50.2,50.29 1 1
+github.com/rafaeldias/currency-converter/services/currency/list.go:31.16,33.3 1 1
+github.com/rafaeldias/currency-converter/services/currency/list.go:38.16,40.3 1 0
+github.com/rafaeldias/currency-converter/services/currency/list.go:42.58,44.3 1 0
+github.com/rafaeldias/currency-converter/services/currency/list.go:46.19,48.3 1 1
+github.com/rafaeldias/currency-converter/services/currency/convert.go:16.77,18.2 1 1

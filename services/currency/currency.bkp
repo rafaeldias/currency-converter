@@ -1,0 +1,108 @@
+package currency
+
+import (
+	"encoding/json"
+	"flag"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
+
+var accessKey = flag.String("accesskey", "abcd", "fake access key for testing purpose")
+
+// Checks for the presence and correctness of access key
+func hasAccessKey(r *http.Request) bool {
+	return r.URL.Query().Get("access_key") == *accessKey
+}
+
+// Creates fake server so we can test if service is making an http request
+func currencyLayerServer(l List) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !hasAccessKey(r) {
+			errPay := currenciesPayload{
+				Success: false,
+				Error: errPayload{
+					Code: http.StatusSwitchingProtocols,
+					Info: "User did not supply an access key or supplied an invalid access key.",
+				},
+			}
+
+			res, err := json.Marshal(errPay)
+			if err != nil {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+			http.Error(w, string(res), http.StatusBadRequest)
+			return
+		}
+
+		switch r.URL.Path {
+		case "/api/list":
+			currPay := currenciesPayload{
+				Success:    true,
+				Currencies: l,
+			}
+
+			res, err := json.Marshal(currPay)
+			if err != nil {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+
+			w.WriteHeader(http.StatusOK)
+			w.Write(res)
+		default:
+			http.Error(w, "Not Found", http.StatusNotFound)
+		}
+	}))
+}
+
+func TestList(t *testing.T) {
+	l := List{"AED": "United Arab Mirates Dirham"}
+	s := currencyLayerServer(l)
+
+	testCases := []struct {
+		URL       string
+		accessKey string
+		want      List
+	}{
+		{s.URL, *accessKey, l},
+	}
+
+	for _, tc := range testCases {
+		c := New(tc.URL, tc.accessKey)
+		list, err := c.List()
+		if err != nil {
+			t.Fatalf("Error while requesting currency list: %s", err.Error())
+		}
+
+		for k, v := range tc.want {
+			if curr, ok := list[k]; !ok || curr != v {
+				t.Fatalf("got: %s; want: %s", list, tc.want)
+			}
+		}
+	}
+}
+
+func TestListError(t *testing.T) {
+	l := List{"AED": "United Arab Mirates Dirham"}
+	s := currencyLayerServer(l)
+
+	testCases := []struct {
+		URL       string
+		accessKey string
+		want      string
+	}{
+		{s.URL, "", "User did not supply an access key or supplied an invalid access key."},
+		{"", "", "Get /api/list?access_key=: unsupported protocol scheme \"\""},
+	}
+
+	for _, tc := range testCases {
+		c := New(tc.URL, tc.accessKey)
+		_, err := c.List()
+		if err != nil && err.Error() != tc.want {
+			t.Fatalf("got: %s; want: %s", err.Error(), tc.want)
+			//t.Fatalf("Error while requesting currency list: %s", err.Error())
+		}
+	}
+}
