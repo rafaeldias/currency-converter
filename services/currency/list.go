@@ -1,34 +1,27 @@
 package currency
 
-import (
-	_ "encoding/json"
-	_ "errors"
-	"fmt"
-	_ "io/ioutil"
-	"net/http"
-)
+import "net/url"
 
 // List is the collection of available currencies to be converted
 type List map[string]string
 
-// list embeds reference to Credential object in order to execute the requests
+// list implements the Lister interface
 type list struct {
-	Credential
+	rp requestParser
 }
 
 // List requests a collection of currencies from the external service
 func (l *list) List() (List, error) {
 	var list currenciesPayload
-	var listURL = fmt.Sprintf("%s/api/list?access_key=%s", l.Host, l.AccessKey)
 
-	res, err := http.Get(listURL)
+	res, err := l.rp.Request("list", url.Values{})
 	if err != nil {
 		return nil, err
 	}
 
-	defer res.Body.Close()
+	defer res.Close()
 
-	if err := parseCurrencyLayerPayload(&list, res.Body); err != nil {
+	if err := l.rp.Parse(&list, res); err != nil {
 		return nil, err
 	}
 

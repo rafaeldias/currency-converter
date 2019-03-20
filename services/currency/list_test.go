@@ -1,52 +1,65 @@
 package currency
 
-import "testing"
+import (
+	"errors"
+	"io"
+	"net/url"
+	"testing"
+)
 
-func TestList(t *testing.T) {
-	l := List{"AED": "United Arab Mirates Dirham"}
-	s := currencyLayerServer(l)
-
-	testCases := []struct {
-		URL       string
-		accessKey string
-		want      List
-	}{
-		{s.URL, *accessKey, l},
-	}
-
-	for _, tc := range testCases {
-		c := list{Credential{tc.URL, tc.accessKey}}
-		list, err := c.List()
-		if err != nil {
-			t.Fatalf("Error while requesting currency list: %s", err.Error())
-		}
-
-		for k, v := range tc.want {
-			if curr, ok := list[k]; !ok || curr != v {
-				t.Fatalf("got: %s; want: %s", list, tc.want)
-			}
-		}
-	}
+type readCloserTest struct {
 }
 
-func TestListError(t *testing.T) {
-	l := List{"AED": "United Arab Mirates Dirham"}
-	s := currencyLayerServer(l)
+func (rc readCloserTest) Read(b []byte) (int, error) {
+	return 0, nil
+}
 
+func (rc readCloserTest) Close() error {
+	return nil
+}
+
+type reqParserTest struct {
+	reqErr, parseErr error
+	rc               io.ReadCloser
+}
+
+func (rp *reqParserTest) Request(s string, v url.Values) (io.ReadCloser, error) {
+	return rp.rc, rp.reqErr
+}
+
+func (rp *reqParserTest) Parse(p payloader, r io.Reader) error {
+	return rp.parseErr
+}
+
+func TestList(t *testing.T) {
 	testCases := []struct {
-		URL       string
-		accessKey string
-		want      string
+		rp  *reqParserTest
+		err error
 	}{
-		{s.URL, "", "User did not supply an access key or supplied an invalid access key."},
-		{"", "", "Get /api/list?access_key=: unsupported protocol scheme \"\""},
+		{
+			&reqParserTest{rc: &readCloserTest{}},
+			nil,
+		},
+		{
+			&reqParserTest{rc: &readCloserTest{}, reqErr: errors.New("Req Error")},
+			errors.New("Req Error"),
+		},
+		{
+			&reqParserTest{rc: &readCloserTest{}, parseErr: errors.New("Parse Error")},
+			errors.New("Parse Error"),
+		},
 	}
 
 	for _, tc := range testCases {
-		c := list{Credential{tc.URL, tc.accessKey}}
+		c := &list{tc.rp}
 		_, err := c.List()
-		if err != nil && err.Error() != tc.want {
-			t.Fatalf("got: %s; want: %s", err.Error(), tc.want)
+
+		if tc.err == nil && err != nil {
+			t.Fatalf("Error while testing currency list: %s", err.Error())
+		}
+
+		if tc.err != nil && (err == nil || err.Error() != tc.err.Error()) {
+			t.Errorf("got: %s, want: %s", err, tc.err)
 		}
 	}
 }

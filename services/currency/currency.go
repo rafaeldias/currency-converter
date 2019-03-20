@@ -7,6 +7,7 @@ type currency struct {
 }
 
 // New Returns a ListConverter
-func New(c Credential) ListConverter {
-	return &currency{&list{c}, &convert{c}}
+func New(host, accessKey string) ListConverter {
+	var c = &currencyLayer{host, accessKey}
+	return currency{&list{c}, &convert{c}}
 }

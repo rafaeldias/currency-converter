@@ -1,54 +1,41 @@
 package currency
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
 func TestConvert(t *testing.T) {
-	s := currencyLayerServer(List{})
-
 	testCases := []struct {
-		URL       string
-		accessKey string
-		from      string
-		to        string
-		value     float32
-		want      float32
+		rp       *reqParserTest
+		from, to string
+		value    float32
+		err      error
 	}{
-		{s.URL, *accessKey, "USD", "GBP", 10, 6.58443},
+		{&reqParserTest{rc: &readCloserTest{}}, "USD", "BRA", 6.68443, nil},
+		{
+			&reqParserTest{rc: &readCloserTest{}, reqErr: errors.New("Req Error")},
+			"USD", "BRA", 6.68443,
+			errors.New("Req Error"),
+		},
+		{
+			&reqParserTest{rc: &readCloserTest{}, parseErr: errors.New("Parse Error")},
+
+			"USD", "BRA", 6.68443,
+			errors.New("Parse Error"),
+		},
 	}
 
 	for _, tc := range testCases {
-		c := convert{Credential{tc.URL, tc.accessKey}}
-		res, err := c.Convert(tc.from, tc.to, tc.value)
-		if err != nil {
-			t.Fatalf("Error while requesting currency list: %s", err.Error())
-		}
-
-		if res != tc.want {
-			t.Errorf("got: %f; want: %f", res, tc.want)
-		}
-	}
-}
-
-func TestConvertError(t *testing.T) {
-	s := currencyLayerServer(List{})
-
-	testCases := []struct {
-		URL       string
-		accessKey string
-		from      string
-		to        string
-		value     float32
-		want      string
-	}{
-		{s.URL, "", "USD", "GBP", 10, 6.58443, "User did not supply an access key or supplied an invalid access key."},
-		{"", "", "Get /api/convert?access_key=: unsupported protocol scheme \"\""},
-	}
-
-	for _, tc := range testCases {
-		c := convert{Credential{tc.URL, tc.accessKey}}
+		c := &convert{tc.rp}
 		_, err := c.Convert(tc.from, tc.to, tc.value)
-		if err != nil && err.Error() != tc.want {
-			t.Fatalf("got: %s; want: %s", err.Error(), tc.want)
+
+		if tc.err == nil && err != nil {
+			t.Fatalf("Error while testing currency list: %s", err.Error())
+		}
+
+		if tc.err != nil && (err == nil || err.Error() != tc.err.Error()) {
+			t.Errorf("got: %s, want: %s", err, tc.err)
 		}
 	}
 }

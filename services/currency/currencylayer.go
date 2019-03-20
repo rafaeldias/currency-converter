@@ -1,30 +1,18 @@
 package currency
 
 import (
+	"bytes"
 	"encoding/json"
-	"errors"
-	"flag"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
+	"net/url"
 )
-
-var accessKey = flag.String("accesskey", "abcd", "fake access key for testing purpose")
 
 type errPayload struct {
 	Code int    `json:"code"`
 	Info string `json:"info"`
-}
-
-// Commom properties of Currency Layer payloaa
-type defaultPayload struct {
-	Success bool       `json:"success"`
-	Error   errPayload `json:"error,omitempty"`
-}
-
-func (d *defaultPayload) Ok() bool {
-	return d.Success
 }
 
 // Partial payload returned by the Currency Layer, useless properties were omitted
@@ -41,85 +29,53 @@ type convertPayload struct {
 	Result float32 `json:"result,omitempty"`
 }
 
-func parseCurrencyLayerPayload(c currencyLayer, r io.Reader) error {
+type currencyLayer struct {
+	host, accessKey string
+}
+
+// parseCurrencyLayerPayload reads the stream of bytes from io.Reader and
+// decodes it from json to payloader interface, thus being able to
+// check if the request was successful without knowing the exact type of
+// the payload
+func (c *currencyLayer) Parse(p payloader, r io.Reader) error {
 	bytes, err := ioutil.ReadAll(r)
 	if err != nil {
 		return err
 	}
 
-	if err := json.Unmarshal(bytes, c); err != nil {
+	if err := json.Unmarshal(bytes, p); err != nil {
 		return err
 	}
 
-	if !c.Ok() {
-		return errors.New(list.Error.Info)
+	return p.Successful()
+}
+
+func mountURL(c *currencyLayer, endpoint string, v url.Values) (string, error) {
+	// Left the trailing question marking as there will always be at least one
+	// query parameter
+	var reqURL = bytes.NewBufferString(fmt.Sprintf("%s/api/%s?", c.host, endpoint))
+
+	// Sets access_key, replacing any existing value before it.
+	v.Set("access_key", c.accessKey)
+
+	if _, err := reqURL.WriteString(v.Encode()); err != nil {
+		return "", err
 	}
 
-	return nil
+	return reqURL.String(), nil
 }
 
-// Checks for the presence and correctness of access key
-func hasAccessKey(r *http.Request) bool {
-	return r.URL.Query().Get("access_key") == *accessKey
-}
+// Request return an io.ReadCloser or error from the http request to external service.
+func (c *currencyLayer) Request(endpoint string, v url.Values) (io.ReadCloser, error) {
+	reqURL, err := mountURL(c, endpoint, v)
+	if err != nil {
+		return nil, err
+	}
 
-// Creates fake server so we can test if service is making an http request
-func currencyLayerServer(l List) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !hasAccessKey(r) {
-			errPay := defaultPayload{
-				Success: false,
-				Error: errPayload{
-					Code: http.StatusSwitchingProtocols,
-					Info: "User did not supply an access key or supplied an invalid access key.",
-				},
-			}
+	res, err := http.Get(reqURL)
+	if err != nil {
+		return nil, err
+	}
 
-			res, err := json.Marshal(errPay)
-			if err != nil {
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-				return
-			}
-			http.Error(w, string(res), http.StatusBadRequest)
-			return
-		}
-
-		switch r.URL.Path {
-		case "/api/list":
-			currPay := currenciesPayload{
-				defaultPayload{
-					Success: true,
-				},
-				l,
-			}
-
-			res, err := json.Marshal(currPay)
-			if err != nil {
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-				return
-			}
-
-			w.WriteHeader(http.StatusOK)
-			w.Write(res)
-		case "/api/convert":
-			convPay := convertPayload{
-				defaultPayload{
-					Success: true,
-				},
-				6.58443,
-			}
-
-			res, err := json.Marshal(convPay)
-			if err != nil {
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-				return
-			}
-
-			w.WriteHeader(http.StatusOK)
-			w.Write(res)
-
-		default:
-			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-		}
-	}))
+	return res.Body, nil
 }

@@ -1,41 +1,33 @@
 package currency
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
-	"io/ioutil"
-	"net/http"
+	"net/url"
 )
 
-// convert embeds reference to Credential object in order to execute the requests
+// convert implements the Converter interface
 type convert struct {
-	Credential
+	rp requestParser
 }
 
 // Convert requests a conversion from one currency to another with the specified value
 func (c *convert) Convert(from, to string, value float32) (float32, error) {
 	var conv convertPayload
-	var convURL = fmt.Sprintf("%s/api/convert?from=%s&to=%s&amount=%f&access_key=%s", c.Host, from, to, value, c.AccessKey)
+	var v = url.Values{
+		"from":   {from},
+		"to":     {to},
+		"amount": {fmt.Sprintf("%f", value)},
+	}
 
-	res, err := http.Get(convURL)
+	res, err := c.rp.Request("convert", v)
 	if err != nil {
 		return 0, err
 	}
 
-	defer res.Body.Close()
+	defer res.Close()
 
-	converted, err := ioutil.ReadAll(res.Body)
-	if err != nil {
+	if err := c.rp.Parse(&conv, res); err != nil {
 		return 0, err
-	}
-
-	if err := json.Unmarshal(converted, &conv); err != nil {
-		return 0, err
-	}
-
-	if !conv.Success {
-		return 0, errors.New(conv.Error.Info)
 	}
 
 	return conv.Result, nil
