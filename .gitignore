@@ -1,3 +1,4 @@
 # files For Test Coverage
 *.out
 *.html
+/bin
