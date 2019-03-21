@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -48,8 +47,6 @@ func Conversion(hc router.HTTPContexter) {
 	var val = hc.Request().URL.Query().Get("value")
 
 	f, _ := strconv.ParseFloat(val, 32)
-
-	log.Printf("Values from query: %s, %s, %f\n", from, to, f)
 
 	// Type assert to currency.Conveter, as this interface
 	// has the methods we are interested in for now.
