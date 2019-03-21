@@ -8,6 +8,31 @@ import (
 	"testing"
 )
 
+func TestAddToRoutes(t *testing.T) {
+	var testCase = []struct {
+		router Router
+		want   Route
+	}{
+		{
+			New(),
+			Route{
+				handler,
+				http.MethodGet,
+				paramsFromPath(path),
+				patternFromPath(path),
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc.router.appendToRoutes(tc.want)
+
+		if len(tc.router.Routes) < 1 || !reflect.DeepEqual(tc.router.Routes[0], tc.want) {
+			t.Errorf("got: %s, want: %s", p, tc.want)
+		}
+	}
+}
+
 func TestSanatizePath(t *testing.T) {
 	var testCase = []struct {
 		path, want string

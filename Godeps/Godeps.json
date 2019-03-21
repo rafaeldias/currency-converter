@@ -1,0 +1,6 @@
+{
+	"ImportPath": "github.com/rafaeldias/currency-converter",
+	"GoVersion": "go1.11",
+	"GodepVersion": "v79",
+	"Deps": []
+}

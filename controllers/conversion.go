@@ -20,13 +20,13 @@ func ValidateConversion(hc router.HTTPContexter) {
 
 	v := hc.Request().URL.Query().Get("value")
 	if v == "" {
-		hc.Write(http.StatusBadRequest, hc.JSON(Error{"Missing required parameters"}, jsonp))
+		hc.Write(http.StatusBadRequest, hc.JSON(Error{"Missing required `value` query parameter"}, jsonp))
 		hc.Set("valid", false)
 		return
 	}
 
 	if _, err := strconv.ParseFloat(v, 32); err != nil {
-		hc.Write(http.StatusBadRequest, hc.JSON(Error{fmt.Sprintf("Cannot convert %s to float", v)}, jsonp))
+		hc.Write(http.StatusBadRequest, hc.JSON(Error{fmt.Sprintf("Cannot convert `%s` to float", v)}, jsonp))
 		hc.Set("valid", false)
 		return
 

@@ -30,16 +30,16 @@ func New() *Router {
 	return &Router{}
 }
 
+// Options parses path and set an entry in Routes with its handlers
+// Same could be made for the other HTTP verbs, but for now this all we need
+func (r *Router) Options(path string, handlers ...Handler) {
+	r.addToRoutes(http.MethodOptions, path, handlers...)
+}
+
 // Get parses path and set an entry in Routes with its handlers
 // Same could be made for the other HTTP verbs, but for now this all we need
-func (r *Router) Get(path string, handler ...Handler) {
-	path = sanatizePath(path)
-	r.Routes = append(r.Routes, Route{
-		handler,
-		http.MethodGet,
-		paramsFromPath(path),
-		patternFromPath(path),
-	})
+func (r *Router) Get(path string, handlers ...Handler) {
+	r.addToRoutes(http.MethodGet, path, handlers...)
 }
 
 // Use sets a new middleware
@@ -68,6 +68,16 @@ func (r *Router) execMiddlewares(ctx HTTPContexter) {
 	for _, m := range r.Middlewares {
 		m(ctx)
 	}
+}
+
+func (r *Router) addToRoutes(method, path string, handlers ...Handler) {
+	path = sanatizePath(path)
+	r.Routes = append(r.Routes, Route{
+		handlers,
+		method,
+		paramsFromPath(path),
+		patternFromPath(path),
+	})
 }
 
 func sanatizePath(path string) string {
