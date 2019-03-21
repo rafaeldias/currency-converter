@@ -50,7 +50,7 @@ func (c *currencyLayer) Parse(p payloader, r io.Reader) error {
 	return p.Successful()
 }
 
-func mountURL(c *currencyLayer, endpoint string, v url.Values) (string, error) {
+func mountURL(c *currencyLayer, endpoint string, v url.Values) string {
 	// Left the trailing question marking as there will always be at least one
 	// query parameter
 	var reqURL = bytes.NewBufferString(fmt.Sprintf("%s/api/%s?", c.host, endpoint))
@@ -58,19 +58,14 @@ func mountURL(c *currencyLayer, endpoint string, v url.Values) (string, error) {
 	// Sets access_key, replacing any existing value before it.
 	v.Set("access_key", c.accessKey)
 
-	if _, err := reqURL.WriteString(v.Encode()); err != nil {
-		return "", err
-	}
+	reqURL.WriteString(v.Encode())
 
-	return reqURL.String(), nil
+	return reqURL.String()
 }
 
 // Request return an io.ReadCloser or error from the http request to external service.
 func (c *currencyLayer) Request(endpoint string, v url.Values) (io.ReadCloser, error) {
-	reqURL, err := mountURL(c, endpoint, v)
-	if err != nil {
-		return nil, err
-	}
+	reqURL := mountURL(c, endpoint, v)
 
 	res, err := http.Get(reqURL)
 	if err != nil {

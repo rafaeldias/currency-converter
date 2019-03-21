@@ -55,10 +55,7 @@ func TestMountURL(t *testing.T) {
 	for _, tc := range testCases {
 		c := &currencyLayer{tc.host, tc.accessKey}
 
-		testURL, err := mountURL(c, tc.endpoint, tc.values)
-		if err != nil {
-			t.Fatalf("Error while testing mountURL: %s", err.Error())
-		}
+		testURL := mountURL(c, tc.endpoint, tc.values)
 
 		if testURL != tc.want {
 			t.Errorf("got: %s, want: %s", testURL, tc.want)

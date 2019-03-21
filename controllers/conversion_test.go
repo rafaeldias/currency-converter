@@ -182,6 +182,7 @@ func TestValidateConversionWrite(t *testing.T) {
 }
 
 func TestConversionValid(t *testing.T) {
+	var c = &converterTest{}
 	var testCases = []struct {
 		params map[string]string
 		req    *http.Request
@@ -196,7 +197,8 @@ func TestConversionValid(t *testing.T) {
 				},
 			},
 			map[string]interface{}{
-				"valid": false,
+				"valid":    false,
+				"currency": c,
 			},
 			false,
 		},
@@ -209,14 +211,13 @@ func TestConversionValid(t *testing.T) {
 			},
 			map[string]interface{}{
 				"valid":    true,
-				"currency": &converterTest{},
+				"currency": c,
 			},
 			true,
 		},
 	}
 
 	for _, tc := range testCases {
-		c := &converterTest{err: nil}
 		ctx := &ctxHTTPConversionTest{
 			converter: c,
 			params:    tc.params,

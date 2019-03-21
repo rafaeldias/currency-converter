@@ -36,14 +36,10 @@ func CORSHeaders() router.Handler {
 
 func noopHandler(hc router.HTTPContexter) {}
 
-func main() {
-	var appPort = getEnv("APP_PORT", "9000")
-	var currHost = getEnv("CURRENCY_HOST", "service_host")
-	var currAccessKey = getEnv("CURRENCY_ACCESSKEY", "service_access_key")
-
+func handler(currencyHost, accessKey string) http.Handler {
 	var r = router.New()
 
-	r.Use(currencyLayerMiddleware(currHost, currAccessKey))
+	r.Use(currencyLayerMiddleware(currencyHost, accessKey))
 	r.Use(CORSHeaders())
 
 	r.Get("/currencies", controllers.List)
@@ -53,12 +49,19 @@ func main() {
 	r.Options("/currencies", noopHandler)
 	r.Options("/currencies/:from/conversions/:to", noopHandler)
 
-	log.Printf("Listening to port %s\n", appPort)
+	return r
+}
+
+func main() {
+	var appPort = getEnv("APP_PORT", "9000")
+	var currHost = getEnv("CURRENCY_HOST", "service_host")
+	var currAccessKey = getEnv("CURRENCY_ACCESSKEY", "service_access_key")
+
+	var r = handler(currHost, currAccessKey)
 
 	err := http.ListenAndServe(fmt.Sprintf(":%s", appPort), r)
 	if err != nil {
 		log.Fatalf("Failed starting the server: %s\n", err.Error())
 		return
 	}
-
 }

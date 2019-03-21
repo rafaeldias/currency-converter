@@ -1,11 +1,47 @@
 package main
 
 import (
+	"net/http"
 	"os"
 	"testing"
 
 	"github.com/rafaeldias/currency-converter/router"
 )
+
+type ctxHTTPMainTest struct {
+	header http.Header
+	data   map[string]interface{}
+}
+
+func (c *ctxHTTPMainTest) JSON(v interface{}, jsonp bool) []byte {
+	return []byte{}
+}
+
+func (c *ctxHTTPMainTest) Get(s string) interface{} {
+	return c.data[s]
+}
+
+func (c *ctxHTTPMainTest) Set(s string, v interface{}) {
+	c.data[s] = v
+}
+
+func (c *ctxHTTPMainTest) Request() *http.Request {
+	return nil
+}
+
+func (c *ctxHTTPMainTest) SetParam(name, value string) {}
+
+func (c *ctxHTTPMainTest) Param(name string) string {
+	return ""
+}
+
+func (c *ctxHTTPMainTest) Write(code int, b []byte) error {
+	return nil
+}
+
+func (c *ctxHTTPMainTest) Header() http.Header {
+	return c.header
+}
 
 func TestGetEnv(t *testing.T) {
 	var testCases = []struct {
@@ -29,14 +65,36 @@ func TestGetEnv(t *testing.T) {
 	}
 }
 
-func TestCurrencyLayerMiddleware(t *testing.T) {
-	var hc = &router.HTTPContext{}
+func TestCorsHeader(t *testing.T) {
+	var header = http.Header{}
+	var ctx = &ctxHTTPMainTest{header: header}
+	var handler = CORSHeaders()
 
-	m := currencyLayerMiddleware("x", "y")
+	handler(ctx)
 
-	m(hc)
-
-	if c := hc.Get("currency"); c == nil {
-		t.Errorf("got: %v, want: currency", c)
+	if h := ctx.Header().Get("Access-Control-Allow-Origin"); h != "*" {
+		t.Errorf("got: %s, want: *", h)
 	}
+}
+
+func TestCurrencyLayerMiddleware(t *testing.T) {
+	var data = map[string]interface{}{}
+	var ctx = &ctxHTTPMainTest{data: data}
+
+	var handler = currencyLayerMiddleware("x", "y")
+
+	handler(ctx)
+
+	if _, ok := data["currency"]; !ok {
+		t.Errorf("got: %v, want: true", ok)
+	}
+}
+
+func TestHandler(t *testing.T) {
+	var h = handler("host", "key")
+
+	if r, ok := h.(*router.Router); !ok {
+		t.Errorf("got: %v, want: *router.Router", r)
+	}
+
 }
