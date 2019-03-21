@@ -8,27 +8,24 @@ import (
 	"testing"
 )
 
+func noopHandler(c HTTPContexter) {}
+
 func TestAddToRoutes(t *testing.T) {
-	var testCase = []struct {
-		router Router
+	var testCases = []struct {
+		router *Router
 		want   Route
 	}{
 		{
 			New(),
-			Route{
-				handler,
-				http.MethodGet,
-				paramsFromPath(path),
-				patternFromPath(path),
-			},
+			Route{Handlers: []Handler{nil}, Pattern: regexp.MustCompile("^/$")},
 		},
 	}
 
 	for _, tc := range testCases {
-		tc.router.appendToRoutes(tc.want)
+		tc.router.addToRoutes("", "", nil)
 
 		if len(tc.router.Routes) < 1 || !reflect.DeepEqual(tc.router.Routes[0], tc.want) {
-			t.Errorf("got: %s, want: %s", p, tc.want)
+			t.Errorf("got: %v, want: %v", tc.router.Routes, tc.want)
 		}
 	}
 }
@@ -88,8 +85,6 @@ func TestPatternFromPath(t *testing.T) {
 	}
 }
 
-func noopHandler(c HTTPContexter) {}
-
 func TestGet(t *testing.T) {
 	var testCases = []struct {
 		path    string
@@ -112,6 +107,35 @@ func TestGet(t *testing.T) {
 		r := New()
 
 		r.Get(tc.path, tc.handler)
+
+		if len(r.Routes) < 1 || !reflect.DeepEqual(r.Routes[0].Pattern, tc.want.Pattern) {
+			t.Errorf("got: %v, want: %v", r.Routes, tc.want)
+		}
+	}
+}
+
+func TestOptions(t *testing.T) {
+	var testCases = []struct {
+		path    string
+		handler Handler
+		want    Route
+	}{
+		{
+			"/users/:id",
+			noopHandler,
+			Route{
+				Handlers: []Handler{noopHandler},
+				Method:   http.MethodOptions,
+				Params:   []string{"id"},
+				Pattern:  regexp.MustCompile("^/users/([a-zA-Z0-9]+)$"),
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		r := New()
+
+		r.Options(tc.path, tc.handler)
 
 		if len(r.Routes) < 1 || !reflect.DeepEqual(r.Routes[0].Pattern, tc.want.Pattern) {
 			t.Errorf("got: %v, want: %v", r.Routes, tc.want)
