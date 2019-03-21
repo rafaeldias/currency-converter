@@ -53,7 +53,7 @@ func handler(currencyHost, accessKey string) http.Handler {
 }
 
 func main() {
-	var appPort = getEnv("APP_PORT", "9000")
+	var appPort = getEnv("PORT", "9000")
 	var currHost = getEnv("CURRENCY_HOST", "service_host")
 	var currAccessKey = getEnv("CURRENCY_ACCESSKEY", "service_access_key")
 
