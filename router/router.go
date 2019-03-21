@@ -13,10 +13,10 @@ type Handler func(HTTPContexter)
 
 // Route groups the relation of url pattern and its handlers
 type Route struct {
-	Handler Handler
-	Method  string
-	Params  []string
-	Pattern *regexp.Regexp
+	Handlers []Handler
+	Method   string
+	Params   []string
+	Pattern  *regexp.Regexp
 }
 
 // Router groups the router handler of requests by method (GET, POST, PUT...)
@@ -30,9 +30,9 @@ func New() *Router {
 	return &Router{}
 }
 
-// Get parses path and set an entry in Routes with its handler
+// Get parses path and set an entry in Routes with its handlers
 // Same could be made for the other HTTP verbs, but for now this all we need
-func (r *Router) Get(path string, handler Handler) {
+func (r *Router) Get(path string, handler ...Handler) {
 	path = sanatizePath(path)
 	r.Routes = append(r.Routes, Route{
 		handler,
@@ -58,7 +58,7 @@ func (r *Router) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 			r.execMiddlewares(ctx)
 
-			route.Handler(ctx)
+			execHandlers(ctx, route)
 			return
 		}
 	}
@@ -98,7 +98,7 @@ func paramsFromPath(path string) []string {
 func patternFromPath(path string) *regexp.Regexp {
 	// Force exact match
 	path = fmt.Sprintf("^%s$", path)
-	return regexp.MustCompile(paramsPattern.ReplaceAllString(path, "([a-z0-9]+)"))
+	return regexp.MustCompile(paramsPattern.ReplaceAllString(path, "([a-zA-Z0-9]+)"))
 }
 
 func setHTTPParams(ctx HTTPContexter, r Route, matches []string) {
@@ -106,5 +106,11 @@ func setHTTPParams(ctx HTTPContexter, r Route, matches []string) {
 		for i, p := range matches[1:] {
 			ctx.SetParam(r.Params[i], p)
 		}
+	}
+}
+
+func execHandlers(ctx HTTPContexter, r Route) {
+	for _, h := range r.Handlers {
+		h(ctx)
 	}
 }

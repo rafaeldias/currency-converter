@@ -50,8 +50,8 @@ func TestPatternFromPath(t *testing.T) {
 		want *regexp.Regexp
 	}{
 		{"/users", regexp.MustCompile("^/users$")},
-		{"/users/:id", regexp.MustCompile("^/users/([a-z0-9]+)$")},
-		{"/users/:id/files/:name", regexp.MustCompile("^/users/([a-z0-9]+)/files/([a-z0-9]+)$")},
+		{"/users/:id", regexp.MustCompile("^/users/([a-zA-Z0-9]+)$")},
+		{"/users/:id/files/:name", regexp.MustCompile("^/users/([a-zA-Z0-9]+)/files/([a-zA-Z0-9]+)$")},
 	}
 
 	for _, tc := range testCase {
@@ -75,10 +75,10 @@ func TestGet(t *testing.T) {
 			"/users/:id",
 			noopHandler,
 			Route{
-				Handler: Handler(noopHandler),
-				Method:  http.MethodGet,
-				Params:  []string{"id"},
-				Pattern: regexp.MustCompile("^/users/([a-z0-9]+)$"),
+				Handlers: []Handler{noopHandler},
+				Method:   http.MethodGet,
+				Params:   []string{"id"},
+				Pattern:  regexp.MustCompile("^/users/([a-zA-Z0-9]+)$"),
 			},
 		},
 	}
@@ -213,6 +213,36 @@ func TestServeHTTPMiddleware(t *testing.T) {
 
 		if !tc.handler.called {
 			t.Errorf("got: %v, want: true", tc.handler.called)
+		}
+	}
+}
+
+func TestExecHandlers(t *testing.T) {
+	var testCases = []struct {
+		h    []*testHandler
+		want bool
+	}{
+		{
+			[]*testHandler{
+				&testHandler{},
+				&testHandler{},
+				&testHandler{},
+			},
+			true,
+		},
+	}
+
+	for _, tc := range testCases {
+		handlers := []Handler{}
+		for _, th := range tc.h {
+			handlers = append(handlers, th.Handle)
+		}
+		execHandlers(newHTTPContext(nil, nil), Route{Handlers: handlers})
+
+		for _, h := range tc.h {
+			if h.called != tc.want {
+				t.Errorf("got: %v, want: %v", h.called, tc.want)
+			}
 		}
 	}
 }
